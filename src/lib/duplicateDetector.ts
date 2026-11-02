@@ -53,23 +53,28 @@ export async function detectDuplicates(
     const minDate = new Date(Math.min(...dates.map((d) => d.getTime())) - 7 * 86400000);
     const maxDate = new Date(Math.max(...dates.map((d) => d.getTime())) + 7 * 86400000);
 
-    existingTxns = await prisma.transaction.findMany({
-      where: {
-        date: {
-          gte: minDate,
-          lte: maxDate,
+    try {
+      existingTxns = await prisma.transaction.findMany({
+        where: {
+          date: {
+            gte: minDate,
+            lte: maxDate,
+          },
         },
-      },
-      select: {
-        id: true,
-        date: true,
-        amount: true,
-        description: true,
-        referenceNumber: true,
-        bank: true,
-        type: true,
-      },
-    });
+        select: {
+          id: true,
+          date: true,
+          amount: true,
+          description: true,
+          referenceNumber: true,
+          bank: true,
+          type: true,
+        },
+      });
+    } catch (dbErr) {
+      console.warn('Could not query existing transactions for duplicate detection:', dbErr);
+      existingTxns = [];
+    }
   }
 
   let exactCount = 0;

@@ -35,7 +35,12 @@ export async function POST(req: NextRequest) {
       const analysis = analyzeExcelBuffer(buffer, fileName, targetSheet || undefined);
 
       // Check if we have saved mapping configurations in DB that match file or columns
-      const savedMappings = await prisma.columnMapping.findMany();
+      let savedMappings: any[] = [];
+      try {
+        savedMappings = await prisma.columnMapping.findMany();
+      } catch (dbErr) {
+        console.warn('Could not query saved column mappings from database:', dbErr);
+      }
 
       return NextResponse.json({
         success: true,
