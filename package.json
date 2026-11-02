@@ -7,7 +7,7 @@
     "build": "node scripts/prepare-db.js && prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma generate || exit 0"
+    "postinstall": "node scripts/prepare-db.js && prisma generate || exit 0"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
