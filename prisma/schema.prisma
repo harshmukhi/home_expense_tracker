@@ -1,0 +1,138 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Transaction {
+  id                     String   @id @default(cuid())
+  date                   DateTime
+  description            String
+  originalDescription   String?
+  amount                 Float
+  type                   String   // 'EXPENSE' | 'INCOME' | 'TRANSFER'
+  category               String   // e.g. 'Groceries', 'Rent', 'Electricity'
+  paymentMethod          String   // 'Cash', 'Debit Card', 'Credit Card', 'UPI', 'Bank Transfer', 'Cheque', 'Wallet', 'Net Banking', 'Other'
+  bank                   String?
+  cardOrAccount          String?
+  referenceNumber        String?
+  sourceFile             String?
+  importDate             DateTime @default(now())
+  notes                  String?
+  importBatchId          String?
+  isRecurring            Boolean  @default(false)
+  isInternalTransfer     Boolean  @default(false)
+  isCreditCardRepayment  Boolean  @default(false)
+  uncertainCategorisation Boolean @default(false)
+  splitFromId            String?
+  rawData                String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  importBatch            ImportBatch? @relation(fields: [importBatchId], references: [id], onDelete: Cascade)
+
+  @@index([date])
+  @@index([category])
+  @@index([paymentMethod])
+  @@index([bank])
+  @@index([importBatchId])
+  @@index([referenceNumber])
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  icon      String?
+  color     String?
+  isCustom  Boolean  @default(false)
+  keywords  String?  // JSON string array of keywords
+  createdAt DateTime @default(now())
+}
+
+model Bank {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  aliases   String?  // JSON array
+  createdAt DateTime @default(now())
+}
+
+model Card {
+  id             String   @id @default(cuid())
+  bankName       String
+  cardType       String   // 'DEBIT' | 'CREDIT'
+  cardIdentifier String
+  createdAt      DateTime @default(now())
+}
+
+model Account {
+  id            String   @id @default(cuid())
+  bankName      String
+  accountNumber String
+  accountType   String   // 'SAVINGS' | 'CURRENT'
+  createdAt     DateTime @default(now())
+}
+
+model ImportBatch {
+  id           String        @id @default(cuid())
+  fileName     String
+  fileType     String        // 'XLSX' | 'XLS' | 'CSV' | 'DOCX'
+  importedAt   DateTime      @default(now())
+  totalRecords Int
+  totalDebit   Float
+  totalCredit  Float
+  status       String        // 'SUCCESS' | 'PARTIAL'
+  transactions Transaction[]
+}
+
+model ColumnMapping {
+  id              String   @id @default(cuid())
+  name            String   @unique
+  headerRowIndex  Int      @default(0)
+  sheetName       String?
+  mappings        String   // JSON string { [standardField]: originalCol }
+  createdAt       DateTime @default(now())
+}
+
+model Budget {
+  id              String   @id @default(cuid())
+  month           String   @unique // 'YYYY-MM'
+  totalBudget     Float
+  categoryBudgets String?  // JSON string { [category]: amount }
+  cashLimit       Float?
+  bankLimits      String?  // JSON string { [bank]: amount }
+  alertThresholds String   @default("[75, 90, 100]") // JSON string
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model RecurringExpense {
+  id               String    @id @default(cuid())
+  name             String
+  expectedAmount   Float
+  frequency        String    // 'MONTHLY' | 'YEARLY' | 'WEEKLY' | 'QUARTERLY'
+  category         String
+  paymentMethod    String?
+  bank             String?
+  lastPaymentDate  DateTime?
+  nextExpectedDate DateTime?
+  active           Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String
+  details   String?
+  timestamp DateTime @default(now())
+}
+
+model UserSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
