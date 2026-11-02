@@ -412,3 +412,4 @@ export default function RecurringExpensesPage() {
     </div>
   );
 }
+

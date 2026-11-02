@@ -547,3 +547,4 @@ export function generateIntelligentObservations(current: MonthSummary, previous?
 
   return observations;
 }
+

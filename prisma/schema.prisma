@@ -136,3 +136,4 @@ model UserSetting {
   value     String
   updatedAt DateTime @updatedAt
 }
+

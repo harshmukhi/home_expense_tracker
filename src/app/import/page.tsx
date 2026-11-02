@@ -480,13 +480,16 @@ export default function ImportPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
                 { key: 'dateCol', label: 'Transaction Date *', required: true, hint: 'Date, Txn Date, Value Date' },
-                { key: 'descriptionCol', label: 'Description / Narration *', required: true, hint: 'Narration, Remarks, Particulars' },
-                { key: 'amountCol', label: 'Amount (Single Column)', required: false, hint: 'If signed (+/-) or single amount' },
+                { key: 'descriptionCol', label: 'Description / Narration *', required: true, hint: 'Narration, Remarks, Detailes, Particulars' },
+                { key: 'cashAmountCol', label: 'Cash Amount Column', required: false, hint: 'Cash Amount, Cash Spend' },
+                { key: 'cardAmountCol', label: 'Card Amount Column', required: false, hint: 'Card Amount, Card Spend' },
+                { key: 'amountCol', label: 'Single Amount Column', required: false, hint: 'If combined single amount' },
                 { key: 'debitCol', label: 'Debit Column (Expenses)', required: false, hint: 'Withdrawal, Dr Amount, Spent' },
                 { key: 'creditCol', label: 'Credit Column (Income)', required: false, hint: 'Deposit, Cr Amount, Received' },
+                { key: 'upiAmountCol', label: 'UPI Amount Column', required: false, hint: 'UPI Amount, GPay, PhonePe' },
                 { key: 'paymentMethodCol', label: 'Payment Method / Mode', required: false, hint: 'Channel, Mode, Type' },
                 { key: 'bankCol', label: 'Bank / Card Name', required: false, hint: 'Bank Name, Account, Card' },
-                { key: 'referenceCol', label: 'Reference / UTR / Txn ID', required: false, hint: 'UTR, Ref No, Cheque No' },
+                { key: 'referenceCol', label: 'Reference / UTR / Sr No', required: false, hint: 'UTR, Ref No, Sr.No' },
               ].map((field) => (
                 <div key={field.key} className="p-3 rounded-xl border border-gray-100 dark:border-gray-800/80 bg-gray-50/50 dark:bg-gray-800/30">
                   <div className="flex items-center justify-between mb-1">
@@ -807,3 +810,4 @@ export default function ImportPage() {
     </div>
   );
 }
+

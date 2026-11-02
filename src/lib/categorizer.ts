@@ -86,7 +86,7 @@ const CATEGORY_RULES: { category: string; keywords: string[] }[] = [
   },
   {
     category: 'Maintenance',
-    keywords: ['society maintenance', 'rwa maintenance', 'building maintenance', 'plumbing', 'electrician work', 'apartment maintenance'],
+    keywords: ['society maintenance', 'rwa maintenance', 'building maintenance', 'plumbing', 'electrician work', 'electrician', 'apartment maintenance', 'plumber', 'carpenter', 'repair', 'ac repair', 'ac service', 'painting', 'whitewash'],
   },
   {
     category: 'Vegetables and Fruits',
@@ -96,12 +96,13 @@ const CATEGORY_RULES: { category: string; keywords: string[] }[] = [
     category: 'Groceries',
     keywords: [
       'blinkit', 'zepto', 'instamart', 'bigbasket', 'dmart', 'reliance fresh', 'nature basket',
-      'spencer', 'supermarket', 'kirana', 'provisions', 'groceries', 'more retail', 'star bazaar', 'milkbasket'
+      'spencer', 'supermarket', 'kirana', 'provisions', 'groceries', 'more retail', 'star bazaar', 'milkbasket',
+      'milk', 'dairy', 'curd', 'paneer', 'butter milk', 'buttermilk', 'ghee', 'bread', 'eggs', 'atta', 'rice', 'dal'
     ],
   },
   {
     category: 'Food and Dining',
-    keywords: ['swiggy', 'zomato', 'eatsure', 'magicpin', 'chai point', 'starbucks', 'mcdonald', 'burger king', 'domino', 'pizza hut', 'kfc', 'cafe', 'bakery'],
+    keywords: ['swiggy', 'zomato', 'eatsure', 'magicpin', 'chai point', 'starbucks', 'mcdonald', 'burger king', 'domino', 'pizza hut', 'kfc', 'cafe', 'bakery', 'breakfast', 'lunch', 'dinner', 'biryani', 'food exp', 'food', 'snacks', 'tea', 'coffee', 'canteen'],
   },
   {
     category: 'Restaurants',
@@ -121,15 +122,15 @@ const CATEGORY_RULES: { category: string; keywords: string[] }[] = [
   },
   {
     category: 'Shopping',
-    keywords: ['amazon', 'flipkart', 'myntra', 'ajio', 'zara', 'h&m', 'shoppers stop', 'croma', 'reliance digital', 'nykaa', 'tata cliq', 'ikea'],
+    keywords: ['amazon', 'flipkart', 'myntra', 'ajio', 'zara', 'h&m', 'shoppers stop', 'croma', 'reliance digital', 'nykaa', 'tata cliq', 'ikea', 'dupatta', 'saree', 'suit', 'kurti', 'shirt', 'pant', 'dress', 'clothing', 'cloth', 'tailor', 'footwear', 'shoes', 'chappal'],
   },
   {
     category: 'Household Supplies',
-    keywords: ['urban company', 'cleaning supplies', 'detergent', 'hardware store', 'home depot', 'pest control', 'maid salary', 'cook salary'],
+    keywords: ['urban company', 'cleaning supplies', 'detergent', 'hardware store', 'home depot', 'pest control', 'maid salary', 'cook salary', 'bed sheet', 'bedsheet', 'pillow', 'curtain', 'blanket', 'quilt', 'mattress', 'home décor', 'home decor', 'decor', 'furnishing', 'pull over', 'pullover'],
   },
   {
     category: 'Medical',
-    keywords: ['apollo pharmacy', 'pharmacy', 'chemist', '1mg', 'pharmeasy', 'hospital', 'clinic', 'dr.', 'doctor consultation', 'diagnostics', 'lal pathlabs', 'metropolis', 'dentist'],
+    keywords: ['apollo pharmacy', 'pharmacy', 'chemist', '1mg', 'pharmeasy', 'hospital', 'clinic', 'dr.', 'doctor consultation', 'diagnostics', 'lal pathlabs', 'metropolis', 'dentist', 'medicine', 'medicines', 'tablet', 'pharma', 'medical'],
   },
   {
     category: 'Education',
@@ -360,3 +361,4 @@ export function classifyTransaction(description: string, rawPaymentMode?: string
     uncertainCategorisation: true,
   };
 }
+

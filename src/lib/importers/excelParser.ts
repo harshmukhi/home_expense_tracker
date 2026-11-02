@@ -7,6 +7,9 @@ export interface ColumnMappingConfig {
   amountCol?: string;
   debitCol?: string;
   creditCol?: string;
+  cashAmountCol?: string;
+  cardAmountCol?: string;
+  upiAmountCol?: string;
   paymentMethodCol?: string;
   bankCol?: string;
   referenceCol?: string;
@@ -47,14 +50,21 @@ export interface ExcelAnalysisResult {
 }
 
 const FIELD_SYNONYMS: Record<keyof ColumnMappingConfig, string[]> = {
-  dateCol: ['date', 'txn date', 'transaction date', 'value date', 'posting date', 'tran date', 'post date', 'entry date'],
-  descriptionCol: ['narration', 'particulars', 'remarks', 'details', 'description', 'payee', 'transaction details', 'notes', 'merchant'],
-  amountCol: ['amount', 'transaction amount', 'txn amount', 'value', 'inr', 'total', 'amt'],
-  debitCol: ['debit', 'withdrawal', 'dr amount', 'dr', 'withdrawal amount', 'spent', 'debit (inr)', 'paid out'],
-  creditCol: ['credit', 'deposit', 'cr amount', 'cr', 'deposit amount', 'received', 'credit (inr)', 'paid in'],
-  paymentMethodCol: ['mode', 'channel', 'payment type', 'payment mode', 'type', 'method'],
-  bankCol: ['bank', 'bank name', 'account', 'card', 'bank/card', 'acct'],
-  referenceCol: ['utr', 'transaction id', 'txn id', 'reference no', 'reference', 'ref no.', 'ref no', 'chq no', 'cheque no', 'reference number'],
+  dateCol: ['date', 'txn date', 'transaction date', 'value date', 'posting date', 'tran date', 'post date', 'entry date', 'dt', 'day date'],
+  descriptionCol: [
+    'narration', 'particulars', 'particular', 'particulers', 'remarks', 'details', 'detailes',
+    'description', 'discription', 'desc', 'payee', 'transaction details', 'notes', 'merchant',
+    'item', 'items', 'spend for', 'purpose', 'expense details', 'expense'
+  ],
+  cashAmountCol: ['cash amount', 'cash amt', 'cash expense', 'cash spend', 'cash paid', 'cash'],
+  cardAmountCol: ['card amount', 'card amt', 'card expense', 'card spend', 'card paid', 'card payment'],
+  upiAmountCol: ['upi amount', 'upi amt', 'upi expense', 'upi spend', 'upi payment'],
+  amountCol: ['amount', 'transaction amount', 'txn amount', 'value', 'inr', 'total', 'amt', 'spent', 'dr/cr amount'],
+  debitCol: ['debit', 'withdrawal', 'dr amount', 'dr', 'withdrawal amount', 'spent', 'debit (inr)', 'paid out', 'dr amt'],
+  creditCol: ['credit', 'deposit', 'cr amount', 'cr', 'deposit amount', 'received', 'credit (inr)', 'paid in', 'cr amt'],
+  paymentMethodCol: ['mode', 'channel', 'payment type', 'payment mode', 'type', 'method', 'payment method'],
+  bankCol: ['bank', 'bank name', 'account', 'card', 'bank/card', 'acct', 'bank account'],
+  referenceCol: ['utr', 'transaction id', 'txn id', 'reference no', 'reference', 'ref no.', 'ref no', 'chq no', 'cheque no', 'reference number', 'sr no', 'sr.no', 'sr. no'],
 };
 
 function normalizeHeader(h: any): string {
@@ -63,7 +73,7 @@ function normalizeHeader(h: any): string {
 }
 
 export function analyzeExcelBuffer(buffer: Buffer | ArrayBuffer, fileName: string, targetSheet?: string): ExcelAnalysisResult {
-  const workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true });
+  const workbook = XLSX.read(buffer, { type: 'buffer', raw: true });
   const sheetNames = workbook.SheetNames;
   const activeSheet = targetSheet && sheetNames.includes(targetSheet) ? targetSheet : sheetNames[0];
   const worksheet = workbook.Sheets[activeSheet];
@@ -101,23 +111,32 @@ export function analyzeExcelBuffer(buffer: Buffer | ArrayBuffer, fileName: strin
     return s || `Column_${idx + 1}`;
   });
 
-  // 2. Suggest column mappings
+  // 2. Suggest column mappings: first try exact match, then substring match
   const suggested: ColumnMappingConfig = {};
   const normalizedCols = availableColumns.map(normalizeHeader);
 
   for (const [field, synonyms] of Object.entries(FIELD_SYNONYMS) as [keyof ColumnMappingConfig, string[]][]) {
-    for (const syn of synonyms) {
-      const matchIdx = normalizedCols.findIndex((col) => col === syn || col.includes(syn));
-      if (matchIdx !== -1 && !Object.values(suggested).includes(availableColumns[matchIdx])) {
-        suggested[field] = availableColumns[matchIdx];
-        break;
-      }
+    // 1st pass: exact match
+    let matchIdx = normalizedCols.findIndex((col) => synonyms.includes(col));
+    // 2nd pass: substring match
+    if (matchIdx === -1) {
+      matchIdx = normalizedCols.findIndex((col) => synonyms.some((syn) => col.includes(syn)));
+    }
+    if (matchIdx !== -1 && !Object.values(suggested).includes(availableColumns[matchIdx])) {
+      suggested[field] = availableColumns[matchIdx];
     }
   }
 
-  // Check if we have minimum requirements: date AND (amount OR (debit AND credit))
+  // Minimum requirements: date AND (amount OR (debit AND credit) OR cashAmount OR cardAmount)
   const hasDate = Boolean(suggested.dateCol);
-  const hasAmount = Boolean(suggested.amountCol || (suggested.debitCol && suggested.creditCol) || suggested.debitCol);
+  const hasAmount = Boolean(
+    suggested.amountCol ||
+    (suggested.debitCol && suggested.creditCol) ||
+    suggested.debitCol ||
+    suggested.cashAmountCol ||
+    suggested.cardAmountCol ||
+    suggested.upiAmountCol
+  );
   const confidence = (hasDate ? 40 : 0) + (hasAmount ? 40 : 0) + (suggested.descriptionCol ? 20 : 0);
 
   const sampleRows = rawRows.slice(bestHeaderRowIndex, bestHeaderRowIndex + 6);
@@ -142,7 +161,7 @@ export function parseExcelRows(
   mapping: ColumnMappingConfig,
   fileName: string
 ): ParsedTransactionPreview[] {
-  const workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true });
+  const workbook = XLSX.read(buffer, { type: 'buffer', raw: true });
   const worksheet = workbook.Sheets[sheetName || workbook.SheetNames[0]];
   const rawRows: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
 
@@ -167,7 +186,7 @@ export function parseExcelRows(
   for (let r = headerRowIndex + 1; r < rawRows.length; r++) {
     const row = rawRows[r];
     if (!Array.isArray(row) || row.every((c) => c === '' || c === null || c === undefined)) {
-      continue; // Skip empty rows
+      continue; // Skip blank rows
     }
 
     const rawData: Record<string, any> = {};
@@ -180,6 +199,9 @@ export function parseExcelRows(
     const rawAmount = getColVal(row, mapping.amountCol);
     const rawDebit = getColVal(row, mapping.debitCol);
     const rawCredit = getColVal(row, mapping.creditCol);
+    const rawCash = getColVal(row, mapping.cashAmountCol);
+    const rawCard = getColVal(row, mapping.cardAmountCol);
+    const rawUpi = getColVal(row, mapping.upiAmountCol);
     const rawMode = getColVal(row, mapping.paymentMethodCol);
     const rawBank = getColVal(row, mapping.bankCol);
     const rawRef = getColVal(row, mapping.referenceCol);
@@ -188,16 +210,31 @@ export function parseExcelRows(
     const parsedDate = parseDateValue(rawDate);
 
     // 2. Resolve Amount & Type
-    const { amount, type, isValidAmount, error } = resolveAmountAndType(rawAmount, rawDebit, rawCredit);
+    const { amount, type, detectedMethod, isValidAmount, error } = resolveAmounts(
+      rawAmount,
+      rawDebit,
+      rawCredit,
+      rawCash,
+      rawCard,
+      rawUpi
+    );
 
-    // 3. Resolve Description
+    // 3. Skip phantom / placeholder rows (e.g. row with just a serial number like "10" and no date or amount)
+    const hasAnyDesc = Boolean(rawDesc && String(rawDesc).trim().length > 0);
+    if (!parsedDate && amount <= 0 && !hasAnyDesc) {
+      continue;
+    }
+
+    // 4. Resolve Description
     const description = String(rawDesc || '').trim() || (type === 'EXPENSE' ? 'Debit Transaction' : 'Credit Transaction');
 
-    // 4. Categorize & classify
-    const classification = classifyTransaction(description, String(rawMode || ''));
+    // 5. Categorize & classify
+    const initialMode = rawMode ? String(rawMode) : detectedMethod;
+    const classification = classifyTransaction(description, initialMode);
 
     const bankName = rawBank ? String(rawBank).trim() : classification.bank;
     const refNumber = rawRef ? String(rawRef).trim() : undefined;
+    const paymentMethod = detectedMethod || classification.paymentMethod;
 
     const isValid = parsedDate !== null && isValidAmount;
     const validationError = !parsedDate
@@ -213,7 +250,7 @@ export function parseExcelRows(
       amount,
       type: classification.detectedType || type,
       category: classification.category,
-      paymentMethod: classification.paymentMethod,
+      paymentMethod,
       bank: bankName,
       cardOrAccount: classification.cardOrAccount,
       referenceNumber: refNumber,
@@ -247,13 +284,7 @@ export function parseDateValue(val: any): Date | null {
   const str = String(val).trim();
   if (!str) return null;
 
-  // Try standard Date.parse
-  const directParse = new Date(str);
-  if (!isNaN(directParse.getTime()) && directParse.getFullYear() > 1990 && directParse.getFullYear() < 2100) {
-    return directParse;
-  }
-
-  // Handle DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY
+  // IMPORTANT: For Indian format, match DD/MM/YYYY, DD-MM-YYYY, or DD.MM.YYYY FIRST!
   const dmyMatch = str.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/);
   if (dmyMatch) {
     const day = parseInt(dmyMatch[1], 10);
@@ -274,6 +305,12 @@ export function parseDateValue(val: any): Date | null {
     if (!isNaN(d.getTime())) return d;
   }
 
+  // Fallback to standard Date.parse
+  const directParse = new Date(str);
+  if (!isNaN(directParse.getTime()) && directParse.getFullYear() > 1990 && directParse.getFullYear() < 2100) {
+    return directParse;
+  }
+
   return null;
 }
 
@@ -286,11 +323,36 @@ function cleanNumeric(val: any): number {
   return isNaN(num) ? 0 : num;
 }
 
-function resolveAmountAndType(
+function resolveAmounts(
   rawAmount: any,
   rawDebit: any,
-  rawCredit: any
-): { amount: number; type: 'EXPENSE' | 'INCOME' | 'TRANSFER'; isValidAmount: boolean; error?: string } {
+  rawCredit: any,
+  rawCash?: any,
+  rawCard?: any,
+  rawUpi?: any
+): {
+  amount: number;
+  type: 'EXPENSE' | 'INCOME' | 'TRANSFER';
+  detectedMethod?: string;
+  isValidAmount: boolean;
+  error?: string;
+} {
+  const cash = cleanNumeric(rawCash);
+  const card = cleanNumeric(rawCard);
+  const upi = cleanNumeric(rawUpi);
+
+  // If dedicated Cash or Card or UPI amount columns are mapped:
+  if (cash > 0) {
+    return { amount: cash, type: 'EXPENSE', detectedMethod: 'Cash', isValidAmount: true };
+  }
+  if (card > 0) {
+    return { amount: card, type: 'EXPENSE', detectedMethod: 'Debit Card', isValidAmount: true };
+  }
+  if (upi > 0) {
+    return { amount: upi, type: 'EXPENSE', detectedMethod: 'UPI', isValidAmount: true };
+  }
+
+  // Separate Debit and Credit
   const debit = cleanNumeric(rawDebit);
   const credit = cleanNumeric(rawCredit);
 
@@ -301,18 +363,17 @@ function resolveAmountAndType(
     return { amount: Math.abs(credit), type: 'INCOME', isValidAmount: true };
   }
 
+  // Single Amount column
   if (rawAmount !== undefined && rawAmount !== null && String(rawAmount).trim() !== '') {
     const num = cleanNumeric(rawAmount);
     if (num < 0) {
       return { amount: Math.abs(num), type: 'EXPENSE', isValidAmount: true };
     } else if (num > 0) {
-      // If single amount column with positive number, defaults to EXPENSE unless indicated otherwise
       return { amount: num, type: 'EXPENSE', isValidAmount: true };
     }
   }
 
   if (debit > 0 && credit > 0) {
-    // Both filled: choose larger or default to debit
     return { amount: Math.abs(debit), type: 'EXPENSE', isValidAmount: true };
   }
 

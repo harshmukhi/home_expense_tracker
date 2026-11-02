@@ -157,3 +157,4 @@ function cleanDocxAmount(val: any): number {
   const n = parseFloat(cleaned);
   return isNaN(n) ? 0 : n;
 }
+
